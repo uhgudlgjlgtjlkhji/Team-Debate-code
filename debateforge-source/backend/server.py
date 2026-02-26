@@ -10,7 +10,7 @@ from typing import List, Optional
 import uuid
 import hashlib
 from datetime import datetime, timezone
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+import importlib
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -98,6 +98,17 @@ def hash_password(password: str) -> str:
 
 async def get_ai_response(system_message: str, user_message: str, session_id: str = None) -> str:
     """Get AI response using Claude via Emergent LLM"""
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(status_code=503, detail="AI is disabled: EMERGENT_LLM_KEY is not configured")
+
+    try:
+        chat_module = importlib.import_module('emergentintegrations.llm.chat')
+    except ModuleNotFoundError:
+        raise HTTPException(status_code=503, detail="AI is disabled: emergentintegrations package is unavailable")
+
+    LlmChat = chat_module.LlmChat
+    UserMessage = chat_module.UserMessage
+
     try:
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
